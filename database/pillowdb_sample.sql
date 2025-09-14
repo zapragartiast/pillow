@@ -123,15 +123,16 @@ INSERT INTO "Role_Permissions" (role_id, permission_id) VALUES
 -- ===========================================
 
 -- Super Admin User (the one you specified)
+-- Password is "password123"
 INSERT INTO "Users" (id, username, email, password_hash, is_active) VALUES
-('43739cef-f82b-4b74-8e11-2c9c907300d1', 'superadmin', 'superadmin@pillow.com', '$2a$10$8K3VZ6Y8QX8QX8QX8QX8QeF8QX8QX8QX8QX8QX8QX8QX8QX8QX8Q', true);
+('43739cef-f82b-4b74-8e11-2c9c907300d1', 'superadmin', 'superadmin@pillow.com', '$2a$10$aGHfPOCjVnSBHmg/WE5y7eKLCnH.epcLtVdMiN8B4lRR1FBkb1J7K', true);
 
 -- Other sample users
 INSERT INTO "Users" (id, username, email, password_hash, is_active) VALUES
-('550e8400-e29b-41d4-a716-446655440100', 'admin_user', 'admin@pillow.com', '$2a$10$8K3VZ6Y8QX8QX8QX8QX8QeF8QX8QX8QX8QX8QX8QX8QX8QX8QX8Q', true),
-('550e8400-e29b-41d4-a716-446655440101', 'manager_user', 'manager@pillow.com', '$2a$10$8K3VZ6Y8QX8QX8QX8QX8QeF8QX8QX8QX8QX8QX8QX8QX8QX8QX8Q', true),
-('550e8400-e29b-41d4-a716-446655440102', 'regular_user', 'user@pillow.com', '$2a$10$8K3VZ6Y8QX8QX8QX8QX8QeF8QX8QX8QX8QX8QX8QX8QX8QX8QX8Q', true),
-('550e8400-e29b-41d4-a716-446655440103', 'viewer_user', 'viewer@pillow.com', '$2a$10$8K3VZ6Y8QX8QX8QX8QX8QeF8QX8QX8QX8QX8QX8QX8QX8QX8QX8Q', true);
+('550e8400-e29b-41d4-a716-446655440100', 'admin_user', 'admin@pillow.com', '$2a$10$aGHfPOCjVnSBHmg/WE5y7eKLCnH.epcLtVdMiN8B4lRR1FBkb1J7K', true),
+('550e8400-e29b-41d4-a716-446655440101', 'manager_user', 'manager@pillow.com', '$2a$10$aGHfPOCjVnSBHmg/WE5y7eKLCnH.epcLtVdMiN8B4lRR1FBkb1J7K', true),
+('550e8400-e29b-41d4-a716-446655440102', 'regular_user', 'user@pillow.com', '$2a$10$aGHfPOCjVnSBHmg/WE5y7eKLCnH.epcLtVdMiN8B4lRR1FBkb1J7K', true),
+('550e8400-e29b-41d4-a716-446655440103', 'viewer_user', 'viewer@pillow.com', '$2a$10$aGHfPOCjVnSBHmg/WE5y7eKLCnH.epcLtVdMiN8B4lRR1FBkb1J7K', true);
 
 -- ===========================================
 -- USER-ROLE ASSIGNMENTS

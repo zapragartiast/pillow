@@ -31,7 +31,7 @@ func GetPermissions(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" ORDER BY name")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		defer rows.Close()
@@ -41,7 +41,7 @@ func GetPermissions(db *sql.DB) http.HandlerFunc {
 			var permission models.Permission
 			err := rows.Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 			permissions = append(permissions, permission)
@@ -60,7 +60,7 @@ func GetPermission(db *sql.DB) http.HandlerFunc {
 
 		permissionID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid permission ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid permission ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -70,10 +70,10 @@ func GetPermission(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Permission not found", http.StatusNotFound)
+				writeErrorResponse(w, "Permission not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -87,12 +87,12 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreatePermissionRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
 		if strings.TrimSpace(req.Name) == "" {
-			http.Error(w, "Permission name is required", http.StatusBadRequest)
+			writeErrorResponse(w, "Permission name is required", http.StatusBadRequest, r)
 			return
 		}
 
@@ -106,10 +106,10 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 		var existingID uuid.UUID
 		err := db.QueryRow("SELECT id FROM \"Permissions\" WHERE name = $1", req.Name).Scan(&existingID)
 		if err == nil {
-			http.Error(w, "Permission with this name already exists", http.StatusConflict)
+			writeErrorResponse(w, "Permission with this name already exists", http.StatusConflict, r)
 			return
 		} else if err != sql.ErrNoRows {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -119,7 +119,7 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 			permissionID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Description), scopeLevel)
 
 		if err != nil {
-			http.Error(w, "Failed to create permission: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to create permission: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -129,7 +129,7 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 			permissionID).Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 
 		if err != nil {
-			http.Error(w, "Failed to retrieve created permission: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to retrieve created permission: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -169,13 +169,13 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 
 		permissionID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid permission ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid permission ID format", http.StatusBadRequest, r)
 			return
 		}
 
 		var req UpdatePermissionRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
@@ -186,10 +186,10 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Permission not found", http.StatusNotFound)
+				writeErrorResponse(w, "Permission not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -199,10 +199,10 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 			err := db.QueryRow("SELECT id FROM \"Permissions\" WHERE name = $1 AND id != $2",
 				req.Name, permissionID).Scan(&existingID)
 			if err == nil {
-				http.Error(w, "Permission with this name already exists", http.StatusConflict)
+				writeErrorResponse(w, "Permission with this name already exists", http.StatusConflict, r)
 				return
 			} else if err != sql.ErrNoRows {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 		}
@@ -231,7 +231,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 		}
 
 		if len(setParts) == 0 {
-			http.Error(w, "No fields to update", http.StatusBadRequest)
+			writeErrorResponse(w, "No fields to update", http.StatusBadRequest, r)
 			return
 		}
 
@@ -241,7 +241,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 
 		_, err = db.Exec(query, args...)
 		if err != nil {
-			http.Error(w, "Failed to update permission: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to update permission: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -251,7 +251,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 			permissionID).Scan(&updatedPermission.ID, &updatedPermission.Name, &updatedPermission.Description, &updatedPermission.ScopeLevel, &updatedPermission.CreatedAt, &updatedPermission.UpdatedAt)
 
 		if err != nil {
-			http.Error(w, "Failed to retrieve updated permission: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to retrieve updated permission: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -290,7 +290,7 @@ func DeletePermission(db *sql.DB) http.HandlerFunc {
 
 		permissionID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid permission ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid permission ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -301,10 +301,10 @@ func DeletePermission(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Permission not found", http.StatusNotFound)
+				writeErrorResponse(w, "Permission not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -312,19 +312,19 @@ func DeletePermission(db *sql.DB) http.HandlerFunc {
 		var roleCount int
 		err = db.QueryRow("SELECT COUNT(*) FROM \"Role_Permissions\" WHERE permission_id = $1", permissionID).Scan(&roleCount)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
 		if roleCount > 0 {
-			http.Error(w, "Cannot delete permission that is assigned to roles", http.StatusConflict)
+			writeErrorResponse(w, "Cannot delete permission that is assigned to roles", http.StatusConflict, r)
 			return
 		}
 
 		// Delete permission
 		_, err = db.Exec("DELETE FROM \"Permissions\" WHERE id = $1", permissionID)
 		if err != nil {
-			http.Error(w, "Failed to delete permission: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to delete permission: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 

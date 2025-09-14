@@ -23,7 +23,7 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 
 		roleID, err := uuid.Parse(roleIDStr)
 		if err != nil {
-			http.Error(w, "Invalid role ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid role ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -32,10 +32,10 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow("SELECT id, name FROM \"Roles\" WHERE id = $1", roleID).Scan(&role.ID, &role.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Role not found", http.StatusNotFound)
+				writeErrorResponse(w, "Role not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -49,7 +49,7 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 		`, roleID)
 
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		defer rows.Close()
@@ -59,7 +59,7 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 			var permission models.Permission
 			err := rows.Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 			permissions = append(permissions, permission)
@@ -83,13 +83,13 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 
 		roleID, err := uuid.Parse(roleIDStr)
 		if err != nil {
-			http.Error(w, "Invalid role ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid role ID format", http.StatusBadRequest, r)
 			return
 		}
 
 		var req AssignPermissionRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
@@ -98,10 +98,10 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow("SELECT id, name FROM \"Roles\" WHERE id = $1", roleID).Scan(&role.ID, &role.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Role not found", http.StatusNotFound)
+				writeErrorResponse(w, "Role not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -110,10 +110,10 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow("SELECT id, name FROM \"Permissions\" WHERE id = $1", req.PermissionID).Scan(&permission.ID, &permission.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Permission not found", http.StatusNotFound)
+				writeErrorResponse(w, "Permission not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -123,10 +123,10 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 			roleID, req.PermissionID).Scan(&existingID)
 
 		if err == nil {
-			http.Error(w, "Permission is already assigned to this role", http.StatusConflict)
+			writeErrorResponse(w, "Permission is already assigned to this role", http.StatusConflict, r)
 			return
 		} else if err != sql.ErrNoRows {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -135,7 +135,7 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 			roleID, req.PermissionID)
 
 		if err != nil {
-			http.Error(w, "Failed to assign permission to role: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to assign permission to role: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -158,13 +158,13 @@ func RemovePermissionFromRole(db *sql.DB) http.HandlerFunc {
 
 		roleID, err := uuid.Parse(roleIDStr)
 		if err != nil {
-			http.Error(w, "Invalid role ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid role ID format", http.StatusBadRequest, r)
 			return
 		}
 
 		permissionID, err := uuid.Parse(permissionIDStr)
 		if err != nil {
-			http.Error(w, "Invalid permission ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid permission ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -175,10 +175,10 @@ func RemovePermissionFromRole(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Permission is not assigned to this role", http.StatusNotFound)
+				writeErrorResponse(w, "Permission is not assigned to this role", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -187,7 +187,7 @@ func RemovePermissionFromRole(db *sql.DB) http.HandlerFunc {
 			roleID, permissionID)
 
 		if err != nil {
-			http.Error(w, "Failed to remove permission from role: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to remove permission from role: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -208,7 +208,7 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 
 		permissionID, err := uuid.Parse(permissionIDStr)
 		if err != nil {
-			http.Error(w, "Invalid permission ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid permission ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -217,10 +217,10 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow("SELECT id, name FROM \"Permissions\" WHERE id = $1", permissionID).Scan(&permission.ID, &permission.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Permission not found", http.StatusNotFound)
+				writeErrorResponse(w, "Permission not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -234,7 +234,7 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 		`, permissionID)
 
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		defer rows.Close()
@@ -244,7 +244,7 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 			var role models.Role
 			err := rows.Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 			roles = append(roles, role)

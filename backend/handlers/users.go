@@ -19,7 +19,7 @@ func GetUsers(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query("SELECT id, username, email, is_active, created_at, updated_at FROM \"Users\" WHERE is_active = true")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		defer rows.Close()
@@ -28,7 +28,7 @@ func GetUsers(db *sql.DB) http.HandlerFunc {
 		for rows.Next() {
 			var user models.User
 			if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.IsActive, &user.CreatedAt, &user.UpdatedAt); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 			users = append(users, user)
@@ -36,7 +36,7 @@ func GetUsers(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(users); err != nil {
-			http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to encode JSON", http.StatusInternalServerError, r)
 		}
 	}
 }
@@ -45,7 +45,7 @@ func CreateUser(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user models.User
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
@@ -53,22 +53,22 @@ func CreateUser(db *sql.DB) http.HandlerFunc {
 		// fmt.Printf("Received user data: Username=%s, Email=%s, PasswordHash=%s\n", user.Username, user.Email, user.PasswordHash)
 
 		if user.Username == "" {
-			http.Error(w, "Username is required", http.StatusBadRequest)
+			writeErrorResponse(w, "Username is required", http.StatusBadRequest, r)
 			return
 		}
 		if user.Email == "" {
-			http.Error(w, "Email is required", http.StatusBadRequest)
+			writeErrorResponse(w, "Email is required", http.StatusBadRequest, r)
 			return
 		}
 		if user.PasswordHash == "" {
-			http.Error(w, "Password is required", http.StatusBadRequest)
+			writeErrorResponse(w, "Password is required", http.StatusBadRequest, r)
 			return
 		}
 
 		// Hash the password using bcrypt
 		hashedPassword, err := auth.HashPassword(user.PasswordHash)
 		if err != nil {
-			http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to hash password", http.StatusInternalServerError, r)
 			return
 		}
 
@@ -81,7 +81,7 @@ func CreateUser(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow("INSERT INTO \"Users\" (id, username, password_hash, email, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
 			user.ID, user.Username, hashedPassword, user.Email, user.IsActive).Scan(&user.ID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -115,12 +115,12 @@ func Login(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var loginReq LoginRequest
 		if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest, r)
 			return
 		}
 
 		if loginReq.Identifier == "" || loginReq.Password == "" {
-			http.Error(w, "Identifier (username or email) and password required", http.StatusBadRequest)
+			writeErrorResponse(w, "Identifier (username or email) and password required", http.StatusBadRequest, r)
 			return
 		}
 
@@ -131,29 +131,29 @@ func Login(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+				writeErrorResponse(w, "Invalid credentials", http.StatusUnauthorized, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
 		// Check if user is active
 		if !user.IsActive {
-			http.Error(w, "Account is deactivated", http.StatusUnauthorized)
+			writeErrorResponse(w, "Account is deactivated", http.StatusUnauthorized, r)
 			return
 		}
 
 		// Verify password
 		if !auth.CheckPasswordHash(loginReq.Password, user.PasswordHash) {
-			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			writeErrorResponse(w, "Invalid credentials", http.StatusUnauthorized, r)
 			return
 		}
 
 		// Generate JWT token
 		token, err := auth.GenerateJWT(user.ID, user.Username)
 		if err != nil {
-			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to generate token", http.StatusInternalServerError, r)
 			return
 		}
 
@@ -178,7 +178,7 @@ func GetUser(db *sql.DB) http.HandlerFunc {
 
 		userID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid user ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -188,10 +188,10 @@ func GetUser(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "User not found", http.StatusNotFound)
+				writeErrorResponse(w, "User not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -205,7 +205,7 @@ func GetUserProfile(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, ok := middleware.GetUserFromContext(r.Context())
 		if !ok {
-			http.Error(w, "User not found in context", http.StatusUnauthorized)
+			writeErrorResponse(w, "User not found in context", http.StatusUnauthorized, r)
 			return
 		}
 
@@ -216,10 +216,10 @@ func GetUserProfile(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "User not found", http.StatusNotFound)
+				writeErrorResponse(w, "User not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -236,13 +236,13 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 
 		userID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid user ID format", http.StatusBadRequest, r)
 			return
 		}
 
 		var updateReq UpdateUserRequest
 		if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
-			http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
@@ -253,10 +253,10 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "User not found", http.StatusNotFound)
+				writeErrorResponse(w, "User not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -284,7 +284,7 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 		}
 
 		if len(setParts) == 0 {
-			http.Error(w, "No fields to update", http.StatusBadRequest)
+			writeErrorResponse(w, "No fields to update", http.StatusBadRequest, r)
 			return
 		}
 
@@ -293,7 +293,7 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 
 		_, err = db.Exec(query, args...)
 		if err != nil {
-			http.Error(w, "Failed to update user: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to update user: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -303,7 +303,7 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 			userID).Scan(&updatedUser.ID, &updatedUser.Username, &updatedUser.Email, &updatedUser.IsActive, &updatedUser.CreatedAt, &updatedUser.UpdatedAt)
 
 		if err != nil {
-			http.Error(w, "Failed to retrieve updated user: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to retrieve updated user: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -365,7 +365,7 @@ func DeleteUser(db *sql.DB) http.HandlerFunc {
 
 		userID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid user ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -376,17 +376,17 @@ func DeleteUser(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "User not found or already deactivated", http.StatusNotFound)
+				writeErrorResponse(w, "User not found or already deactivated", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
 		// Soft delete by setting is_active to false
 		_, err = db.Exec("UPDATE \"Users\" SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1", userID)
 		if err != nil {
-			http.Error(w, "Failed to delete user: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to delete user: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 

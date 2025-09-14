@@ -37,7 +37,7 @@ func GetOrganizations(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"Organizations\" ORDER BY name")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		defer rows.Close()
@@ -48,7 +48,7 @@ func GetOrganizations(db *sql.DB) http.HandlerFunc {
 			var managedBy sql.NullString
 			var parentOrg sql.NullString
 			if err := rows.Scan(&o.ID, &o.Name, &o.Description, &o.Domain, &managedBy, &o.CreatedAt, &o.UpdatedAt, &parentOrg); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 			if managedBy.Valid {
@@ -75,7 +75,7 @@ func GetOrganization(db *sql.DB) http.HandlerFunc {
 
 		orgID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid organization ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid organization ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -87,10 +87,10 @@ func GetOrganization(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Organization not found", http.StatusNotFound)
+				writeErrorResponse(w, "Organization not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		if managedBy.Valid {
@@ -112,12 +112,12 @@ func CreateOrganization(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateOrganizationRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
 		if strings.TrimSpace(req.Name) == "" {
-			http.Error(w, "Organization name is required", http.StatusBadRequest)
+			writeErrorResponse(w, "Organization name is required", http.StatusBadRequest, r)
 			return
 		}
 
@@ -130,7 +130,7 @@ func CreateOrganization(db *sql.DB) http.HandlerFunc {
 			if id, err := uuid.Parse(req.ManagedBy); err == nil {
 				managedBy = &id
 			} else {
-				http.Error(w, "Invalid managed_by UUID", http.StatusBadRequest)
+				writeErrorResponse(w, "Invalid managed_by UUID", http.StatusBadRequest, r)
 				return
 			}
 		}
@@ -139,7 +139,7 @@ func CreateOrganization(db *sql.DB) http.HandlerFunc {
 			if id, err := uuid.Parse(req.ParentOrgID); err == nil {
 				parentOrg = &id
 			} else {
-				http.Error(w, "Invalid parent_org_id UUID", http.StatusBadRequest)
+				writeErrorResponse(w, "Invalid parent_org_id UUID", http.StatusBadRequest, r)
 				return
 			}
 		}
@@ -147,7 +147,7 @@ func CreateOrganization(db *sql.DB) http.HandlerFunc {
 		_, err := db.Exec("INSERT INTO \"Organizations\" (id, name, description, domain, managed_by, created_at, updated_at, parent_org_id) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $6)",
 			orgID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Description), strings.TrimSpace(req.Domain), managedBy, parentOrg)
 		if err != nil {
-			http.Error(w, "Failed to create organization: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to create organization: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -155,7 +155,7 @@ func CreateOrganization(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"Organizations\" WHERE id = $1",
 			orgID).Scan(&o.ID, &o.Name, &o.Description, &o.Domain, &managedBy, &o.CreatedAt, &o.UpdatedAt, &parentOrg)
 		if err != nil {
-			http.Error(w, "Failed to retrieve created organization: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to retrieve created organization: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		if managedBy != nil {
@@ -201,13 +201,13 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 
 		orgID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid organization ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid organization ID format", http.StatusBadRequest, r)
 			return
 		}
 
 		var req UpdateOrganizationRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
@@ -219,10 +219,10 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 			orgID).Scan(&existing.ID, &existing.Name, &existing.Description, &existing.Domain, &mby, &existing.CreatedAt, &existing.UpdatedAt)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Organization not found", http.StatusNotFound)
+				writeErrorResponse(w, "Organization not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -251,7 +251,7 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 				args = append(args, id)
 				argCnt++
 			} else {
-				http.Error(w, "Invalid managed_by UUID", http.StatusBadRequest)
+				writeErrorResponse(w, "Invalid managed_by UUID", http.StatusBadRequest, r)
 				return
 			}
 		}
@@ -261,13 +261,13 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 				args = append(args, id)
 				argCnt++
 			} else {
-				http.Error(w, "Invalid parent_org_id UUID", http.StatusBadRequest)
+				writeErrorResponse(w, "Invalid parent_org_id UUID", http.StatusBadRequest, r)
 				return
 			}
 		}
 
 		if len(setParts) == 0 {
-			http.Error(w, "No fields to update", http.StatusBadRequest)
+			writeErrorResponse(w, "No fields to update", http.StatusBadRequest, r)
 			return
 		}
 
@@ -278,7 +278,7 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 
 		_, err = db.Exec(query, args...)
 		if err != nil {
-			http.Error(w, "Failed to update organization: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to update organization: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -286,7 +286,7 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"Organizations\" WHERE id = $1",
 			orgID).Scan(&updated.ID, &updated.Name, &updated.Description, &updated.Domain, &mby, &updated.CreatedAt, &updated.UpdatedAt, &porg)
 		if err != nil {
-			http.Error(w, "Failed to retrieve updated organization: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to retrieve updated organization: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		if mby.Valid {
@@ -316,7 +316,7 @@ func DeleteOrganization(db *sql.DB) http.HandlerFunc {
 
 		orgID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid organization ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid organization ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -324,28 +324,28 @@ func DeleteOrganization(db *sql.DB) http.HandlerFunc {
 		var childCount int
 		err = db.QueryRow("SELECT COUNT(*) FROM \"Organizations\" WHERE parent_org_id = $1", orgID).Scan(&childCount)
 		if err != nil {
-			http.Error(w, "Error checking children: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Error checking children: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		if childCount > 0 {
-			http.Error(w, "Cannot delete organization that has child organizations", http.StatusConflict)
+			writeErrorResponse(w, "Cannot delete organization that has child organizations", http.StatusConflict, r)
 			return
 		}
 
 		var memberCount int
 		err = db.QueryRow("SELECT COUNT(*) FROM \"User_Organizations\" WHERE org_id = $1", orgID).Scan(&memberCount)
 		if err != nil {
-			http.Error(w, "Error checking memberships: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Error checking memberships: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		if memberCount > 0 {
-			http.Error(w, "Cannot delete organization that has user memberships", http.StatusConflict)
+			writeErrorResponse(w, "Cannot delete organization that has user memberships", http.StatusConflict, r)
 			return
 		}
 
 		_, err = db.Exec("DELETE FROM \"Organizations\" WHERE id = $1", orgID)
 		if err != nil {
-			http.Error(w, "Failed to delete organization: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to delete organization: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 

@@ -29,7 +29,7 @@ func GetRoles(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query("SELECT id, name, description, created_at, updated_at FROM \"Roles\" ORDER BY name")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 		defer rows.Close()
@@ -39,7 +39,7 @@ func GetRoles(db *sql.DB) http.HandlerFunc {
 			var role models.Role
 			err := rows.Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 			roles = append(roles, role)
@@ -58,7 +58,7 @@ func GetRole(db *sql.DB) http.HandlerFunc {
 
 		roleID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid role ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid role ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -68,10 +68,10 @@ func GetRole(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Role not found", http.StatusNotFound)
+				writeErrorResponse(w, "Role not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -85,12 +85,12 @@ func CreateRole(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateRoleRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
 		if strings.TrimSpace(req.Name) == "" {
-			http.Error(w, "Role name is required", http.StatusBadRequest)
+			writeErrorResponse(w, "Role name is required", http.StatusBadRequest, r)
 			return
 		}
 
@@ -98,10 +98,10 @@ func CreateRole(db *sql.DB) http.HandlerFunc {
 		var existingID uuid.UUID
 		err := db.QueryRow("SELECT id FROM \"Roles\" WHERE name = $1", req.Name).Scan(&existingID)
 		if err == nil {
-			http.Error(w, "Role with this name already exists", http.StatusConflict)
+			writeErrorResponse(w, "Role with this name already exists", http.StatusConflict, r)
 			return
 		} else if err != sql.ErrNoRows {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -111,7 +111,7 @@ func CreateRole(db *sql.DB) http.HandlerFunc {
 			roleID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Description))
 
 		if err != nil {
-			http.Error(w, "Failed to create role: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to create role: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -121,7 +121,7 @@ func CreateRole(db *sql.DB) http.HandlerFunc {
 			roleID).Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 
 		if err != nil {
-			http.Error(w, "Failed to retrieve created role: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to retrieve created role: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -161,13 +161,13 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 
 		roleID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid role ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid role ID format", http.StatusBadRequest, r)
 			return
 		}
 
 		var req UpdateRoleRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest, r)
 			return
 		}
 
@@ -178,10 +178,10 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Role not found", http.StatusNotFound)
+				writeErrorResponse(w, "Role not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -191,10 +191,10 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 			err := db.QueryRow("SELECT id FROM \"Roles\" WHERE name = $1 AND id != $2",
 				req.Name, roleID).Scan(&existingID)
 			if err == nil {
-				http.Error(w, "Role with this name already exists", http.StatusConflict)
+				writeErrorResponse(w, "Role with this name already exists", http.StatusConflict, r)
 				return
 			} else if err != sql.ErrNoRows {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 				return
 			}
 		}
@@ -217,7 +217,7 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 		}
 
 		if len(setParts) == 0 {
-			http.Error(w, "No fields to update", http.StatusBadRequest)
+			writeErrorResponse(w, "No fields to update", http.StatusBadRequest, r)
 			return
 		}
 
@@ -227,7 +227,7 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 
 		_, err = db.Exec(query, args...)
 		if err != nil {
-			http.Error(w, "Failed to update role: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to update role: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -237,7 +237,7 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 			roleID).Scan(&updatedRole.ID, &updatedRole.Name, &updatedRole.Description, &updatedRole.CreatedAt, &updatedRole.UpdatedAt)
 
 		if err != nil {
-			http.Error(w, "Failed to retrieve updated role: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to retrieve updated role: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -276,7 +276,7 @@ func DeleteRole(db *sql.DB) http.HandlerFunc {
 
 		roleID, err := uuid.Parse(idStr)
 		if err != nil {
-			http.Error(w, "Invalid role ID format", http.StatusBadRequest)
+			writeErrorResponse(w, "Invalid role ID format", http.StatusBadRequest, r)
 			return
 		}
 
@@ -287,10 +287,10 @@ func DeleteRole(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				http.Error(w, "Role not found", http.StatusNotFound)
+				writeErrorResponse(w, "Role not found", http.StatusNotFound, r)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
@@ -298,19 +298,19 @@ func DeleteRole(db *sql.DB) http.HandlerFunc {
 		var userCount int
 		err = db.QueryRow("SELECT COUNT(*) FROM \"User_Roles\" WHERE role_id = $1", roleID).Scan(&userCount)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
 		if userCount > 0 {
-			http.Error(w, "Cannot delete role that is assigned to users", http.StatusConflict)
+			writeErrorResponse(w, "Cannot delete role that is assigned to users", http.StatusConflict, r)
 			return
 		}
 
 		// Delete role
 		_, err = db.Exec("DELETE FROM \"Roles\" WHERE id = $1", roleID)
 		if err != nil {
-			http.Error(w, "Failed to delete role: "+err.Error(), http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to delete role: "+err.Error(), http.StatusInternalServerError, r)
 			return
 		}
 
