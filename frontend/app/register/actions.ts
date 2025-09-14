@@ -18,7 +18,8 @@ export async function registerAction(formData: FormData) {
 
   try {
     // Call Next.js API route instead of backend directly
-    const registerResponse = await fetch('http://localhost:3000/api/auth/register', {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+    const registerResponse = await fetch(`${apiUrl}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,7 +40,7 @@ export async function registerAction(formData: FormData) {
     }
 
     // Auto-login after successful registration
-    const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
+    const loginResponse = await fetch(`${apiUrl}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

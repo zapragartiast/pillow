@@ -11,13 +11,12 @@ async function getUserProfile() {
   }
 
   try {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-    const response = await fetch(`${backendUrl}/api/users/profile`, {
+    const response = await fetch(`${apiUrl}/api/auth/profile`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        'Cookie': `pillow_token=${token}`, // Pass token via cookie since it's server-side
       },
     })
 
