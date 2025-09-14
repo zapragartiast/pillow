@@ -27,7 +27,7 @@ type UpdateRoleRequest struct {
 // GetRoles retrieves all roles
 func GetRoles(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rows, err := db.Query("SELECT id, name, description, created_at FROM \"Roles\" ORDER BY name")
+		rows, err := db.Query("SELECT id, name, description, created_at, updated_at FROM \"Roles\" ORDER BY name")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -37,7 +37,7 @@ func GetRoles(db *sql.DB) http.HandlerFunc {
 		var roles []models.Role
 		for rows.Next() {
 			var role models.Role
-			err := rows.Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt)
+			err := rows.Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -63,8 +63,8 @@ func GetRole(db *sql.DB) http.HandlerFunc {
 		}
 
 		var role models.Role
-		err = db.QueryRow("SELECT id, name, description, created_at FROM \"Roles\" WHERE id = $1",
-			roleID).Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt)
+		err = db.QueryRow("SELECT id, name, description, created_at, updated_at FROM \"Roles\" WHERE id = $1",
+			roleID).Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -107,7 +107,7 @@ func CreateRole(db *sql.DB) http.HandlerFunc {
 
 		// Create new role
 		roleID := uuid.New()
-		_, err = db.Exec("INSERT INTO \"Roles\" (id, name, description) VALUES ($1, $2, $3)",
+		_, err = db.Exec("INSERT INTO \"Roles\" (id, name, description, created_at, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
 			roleID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Description))
 
 		if err != nil {
@@ -117,8 +117,8 @@ func CreateRole(db *sql.DB) http.HandlerFunc {
 
 		// Get the created role
 		var role models.Role
-		err = db.QueryRow("SELECT id, name, description, created_at FROM \"Roles\" WHERE id = $1",
-			roleID).Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt)
+		err = db.QueryRow("SELECT id, name, description, created_at, updated_at FROM \"Roles\" WHERE id = $1",
+			roleID).Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 
 		if err != nil {
 			http.Error(w, "Failed to retrieve created role: "+err.Error(), http.StatusInternalServerError)
@@ -221,6 +221,7 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
 		query := "UPDATE \"Roles\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + string(rune('0'+argCount))
 		args = append(args, roleID)
 
@@ -232,8 +233,8 @@ func UpdateRole(db *sql.DB) http.HandlerFunc {
 
 		// Get updated role
 		var updatedRole models.Role
-		err = db.QueryRow("SELECT id, name, description, created_at FROM \"Roles\" WHERE id = $1",
-			roleID).Scan(&updatedRole.ID, &updatedRole.Name, &updatedRole.Description, &updatedRole.CreatedAt)
+		err = db.QueryRow("SELECT id, name, description, created_at, updated_at FROM \"Roles\" WHERE id = $1",
+			roleID).Scan(&updatedRole.ID, &updatedRole.Name, &updatedRole.Description, &updatedRole.CreatedAt, &updatedRole.UpdatedAt)
 
 		if err != nil {
 			http.Error(w, "Failed to retrieve updated role: "+err.Error(), http.StatusInternalServerError)

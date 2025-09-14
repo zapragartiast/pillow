@@ -29,7 +29,7 @@ type UpdatePermissionRequest struct {
 // GetPermissions retrieves all permissions
 func GetPermissions(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rows, err := db.Query("SELECT id, name, description, scope_level FROM \"Permissions\" ORDER BY name")
+		rows, err := db.Query("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" ORDER BY name")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -39,7 +39,7 @@ func GetPermissions(db *sql.DB) http.HandlerFunc {
 		var permissions []models.Permission
 		for rows.Next() {
 			var permission models.Permission
-			err := rows.Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel)
+			err := rows.Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -65,8 +65,8 @@ func GetPermission(db *sql.DB) http.HandlerFunc {
 		}
 
 		var permission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level FROM \"Permissions\" WHERE id = $1",
-			permissionID).Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel)
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+			permissionID).Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -115,7 +115,7 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Create new permission
 		permissionID := uuid.New()
-		_, err = db.Exec("INSERT INTO \"Permissions\" (id, name, description, scope_level) VALUES ($1, $2, $3, $4)",
+		_, err = db.Exec("INSERT INTO \"Permissions\" (id, name, description, scope_level, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
 			permissionID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Description), scopeLevel)
 
 		if err != nil {
@@ -125,8 +125,8 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Get the created permission
 		var permission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level FROM \"Permissions\" WHERE id = $1",
-			permissionID).Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel)
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+			permissionID).Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 
 		if err != nil {
 			http.Error(w, "Failed to retrieve created permission: "+err.Error(), http.StatusInternalServerError)
@@ -181,8 +181,8 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Check if permission exists
 		var existingPermission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level FROM \"Permissions\" WHERE id = $1",
-			permissionID).Scan(&existingPermission.ID, &existingPermission.Name, &existingPermission.Description, &existingPermission.ScopeLevel)
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+			permissionID).Scan(&existingPermission.ID, &existingPermission.Name, &existingPermission.Description, &existingPermission.ScopeLevel, &existingPermission.CreatedAt, &existingPermission.UpdatedAt)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -235,6 +235,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
 		query := "UPDATE \"Permissions\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + string(rune('0'+argCount))
 		args = append(args, permissionID)
 
@@ -246,8 +247,8 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Get updated permission
 		var updatedPermission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level FROM \"Permissions\" WHERE id = $1",
-			permissionID).Scan(&updatedPermission.ID, &updatedPermission.Name, &updatedPermission.Description, &updatedPermission.ScopeLevel)
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+			permissionID).Scan(&updatedPermission.ID, &updatedPermission.Name, &updatedPermission.Description, &updatedPermission.ScopeLevel, &updatedPermission.CreatedAt, &updatedPermission.UpdatedAt)
 
 		if err != nil {
 			http.Error(w, "Failed to retrieve updated permission: "+err.Error(), http.StatusInternalServerError)

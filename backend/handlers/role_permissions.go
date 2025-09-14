@@ -41,7 +41,7 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 
 		// Get permissions for this role
 		rows, err := db.Query(`
-			SELECT p.id, p.name, p.description, p.scope_level
+			SELECT p.id, p.name, p.description, p.scope_level, p.created_at, p.updated_at
 			FROM "Permissions" p
 			INNER JOIN "Role_Permissions" rp ON p.id = rp.permission_id
 			WHERE rp.role_id = $1
@@ -57,7 +57,7 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 		var permissions []models.Permission
 		for rows.Next() {
 			var permission models.Permission
-			err := rows.Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel)
+			err := rows.Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -131,7 +131,7 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Create the assignment
-		_, err = db.Exec("INSERT INTO \"Role_Permissions\" (role_id, permission_id) VALUES ($1, $2)",
+		_, err = db.Exec("INSERT INTO \"Role_Permissions\" (role_id, permission_id, created_at, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
 			roleID, req.PermissionID)
 
 		if err != nil {
@@ -226,7 +226,7 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 
 		// Get roles that have this permission
 		rows, err := db.Query(`
-			SELECT r.id, r.name, r.description, r.created_at
+			SELECT r.id, r.name, r.description, r.created_at, r.updated_at
 			FROM "Roles" r
 			INNER JOIN "Role_Permissions" rp ON r.id = rp.role_id
 			WHERE rp.permission_id = $1
@@ -242,7 +242,7 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 		var roles []models.Role
 		for rows.Next() {
 			var role models.Role
-			err := rows.Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt)
+			err := rows.Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

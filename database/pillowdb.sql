@@ -13,6 +13,7 @@ CREATE TABLE "public"."Roles" (
     "name" varchar(50) NOT NULL,
     "description" text,
     "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
 
@@ -20,6 +21,8 @@ CREATE TABLE "public"."Roles" (
 CREATE TABLE "public"."Role_Permissions" (
     "role_id" uuid NOT NULL,
     "permission_id" uuid,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("role_id")
 );
 
@@ -29,8 +32,9 @@ CREATE TABLE "public"."Users" (
     "username" varchar(50) NOT NULL,
     "password_hash" text NOT NULL,
     "email" varchar(100),
-    "created_at" timestamp DEFAULT now(),
     "is_active" bool DEFAULT true,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
 
@@ -41,8 +45,9 @@ CREATE TABLE "public"."Organizations" (
     "description" text,
     "domain" varchar(100),
     "managed_by" uuid,
-    "created_at" timestamp DEFAULT now(),
     "parent_org_id" uuid,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
 
@@ -51,7 +56,9 @@ CREATE TABLE "public"."User_Roles" (
     "user_id" uuid,
     "role_id" uuid,
     "scope" varchar(50) DEFAULT 'org'::character varying,
-    "parent_role_id" uuid
+    "parent_role_id" uuid,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
 );
 
 -- Table Definition
@@ -60,6 +67,8 @@ CREATE TABLE "public"."Permissions" (
     "name" varchar(50) NOT NULL,
     "description" text,
     "scope_level" varchar(50) DEFAULT 'user'::character varying,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
 
@@ -70,7 +79,8 @@ CREATE TABLE "public"."User_Organizations" (
     "org_id" uuid,
     "role_id" uuid,
     "invited_by" uuid,
-    "joined_at" timestamp DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
 
@@ -79,8 +89,8 @@ CREATE TABLE "public"."Audit_Log" (
     "id" uuid NOT NULL,
     "user_id" uuid,
     "action" varchar(100),
-    "timestamp" timestamp DEFAULT now(),
     "details" text,
+    "timestamp" timestamp DEFAULT now(),
     PRIMARY KEY ("id")
 );
 

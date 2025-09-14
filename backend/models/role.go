@@ -11,6 +11,7 @@ type Role struct {
 	Name        string    `json:"name" db:"name"`
 	Description string    `json:"description,omitempty" db:"description"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // RoleWithPermissions represents a role with its associated permissions
@@ -23,4 +24,6 @@ type RoleWithPermissions struct {
 type RolePermission struct {
 	RoleID       uuid.UUID `json:"role_id" db:"role_id"`
 	PermissionID uuid.UUID `json:"permission_id" db:"permission_id"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 }

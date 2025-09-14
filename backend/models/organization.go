@@ -13,6 +13,7 @@ type Organization struct {
 	Domain      string     `json:"domain,omitempty" db:"domain"`
 	ManagedBy   *uuid.UUID `json:"managed_by,omitempty" db:"managed_by"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
 	ParentOrgID *uuid.UUID `json:"parent_org_id,omitempty" db:"parent_org_id"`
 }
 
@@ -29,5 +30,6 @@ type UserOrganization struct {
 	OrgID     uuid.UUID  `json:"org_id" db:"org_id"`
 	RoleID    *uuid.UUID `json:"role_id,omitempty" db:"role_id"`
 	InvitedBy *uuid.UUID `json:"invited_by,omitempty" db:"invited_by"`
-	JoinedAt  time.Time  `json:"joined_at" db:"joined_at"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
 }
