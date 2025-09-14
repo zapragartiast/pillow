@@ -19,6 +19,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/gorilla/handlers v1.5.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect

@@ -304,7 +304,23 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 			"organization": updated,
 		})
 
-		// Audit: handled by middleware (middleware will write the audit record).
+		// Prepare audit details and expose via response headers so middleware records structured audit.
+		detailsMap := map[string]interface{}{
+			"user_before": existing,
+			"user_after":  updated,
+			"action": map[string]interface{}{
+				"method":     r.Method,
+				"path":       r.URL.Path,
+				"actor_id":   nil,
+				"ip_address": r.RemoteAddr,
+			},
+		}
+		if user, ok := middleware.GetUserFromContext(r.Context()); ok && user != nil {
+			detailsMap["action"].(map[string]interface{})["actor_id"] = user.ID.String()
+		}
+		dBytes, _ := json.Marshal(detailsMap)
+		w.Header().Set("X-Audit-Action", "ORGANIZATION_UPDATED")
+		w.Header().Set("X-Audit-Details", string(dBytes))
 	}
 }
 

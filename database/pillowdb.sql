@@ -97,7 +97,7 @@ CREATE TABLE "public"."Audit_Log" (
 
 
 -- Indices
-CREATE UNIQUE INDEX "Roles_name_key" ON public."Roles" USING btree (name);
+CREATE INDEX "Roles_name_key" ON public."Roles" USING btree (name);
 ALTER TABLE "public"."Role_Permissions" ADD FOREIGN KEY ("role_id") REFERENCES "public"."Roles"("id");
 ALTER TABLE "public"."Role_Permissions" ADD FOREIGN KEY ("permission_id") REFERENCES "public"."Permissions"("id");
 
