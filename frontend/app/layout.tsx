@@ -1,5 +1,6 @@
 import './globals.css'
 import React from 'react'
+import { ThemeProvider } from '@/lib/theme-context'
 
 export const metadata = {
   title: 'Pillow Dashboard',
@@ -8,9 +9,11 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900" suppressHydrationWarning={true}>
-        <div className="mx-auto">{children}</div>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors" suppressHydrationWarning={true}>
+        <ThemeProvider>
+          <div className="mx-auto">{children}</div>
+        </ThemeProvider>
       </body>
     </html>
   )
