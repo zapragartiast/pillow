@@ -98,7 +98,7 @@ export function LoginForm({ error }: LoginFormProps) {
                 placeholder="Enter your email"
                 required
                 disabled={isPending}
-                className="h-11 mt-[5px]"
+                className="h-11 mt-[5px] text-gray-700"
               />
             </div>
 
@@ -114,7 +114,7 @@ export function LoginForm({ error }: LoginFormProps) {
                   placeholder="Enter your password"
                   required
                   disabled={isPending}
-                  className="h-11 pr-10 mt-[5px]"
+                  className="h-11 pr-10 mt-[5px] text-gray-700"
                 />
                 <button
                   type="button"
@@ -179,7 +179,7 @@ export function LoginForm({ error }: LoginFormProps) {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-11 border border-gray-300 hover:bg-gray-50"
+              className="w-full h-11 border border-gray-300 hover:bg-gray-50 text-gray-800"
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

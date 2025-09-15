@@ -168,7 +168,7 @@ export function RegisterForm({ error }: RegisterFormProps) {
                 disabled={isPending}
                 value={formData.username}
                 onChange={(e) => handleInputChange('username', e.target.value)}
-                className="h-11 mt-[5px]"
+                className="h-11 mt-[5px] text-gray-700"
               />
               {fieldErrors.username && (
                 <p className="text-sm text-red-600">{fieldErrors.username}</p>
@@ -188,7 +188,7 @@ export function RegisterForm({ error }: RegisterFormProps) {
                 disabled={isPending}
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className="h-11 mt-[5px]"
+                className="h-11 mt-[5px] text-gray-700"
               />
               {fieldErrors.email && (
                 <p className="text-sm text-red-600">{fieldErrors.email}</p>
@@ -209,7 +209,7 @@ export function RegisterForm({ error }: RegisterFormProps) {
                   disabled={isPending}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="h-11 pr-10 mt-[5px]"
+                  className="h-11 pr-10 mt-[5px] text-gray-700"
                 />
                 <button
                   type="button"
@@ -242,7 +242,7 @@ export function RegisterForm({ error }: RegisterFormProps) {
                   disabled={isPending}
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  className="h-11 pr-10 mt-[5px]"
+                  className="h-11 pr-10 mt-[5px] text-gray-700"
                 />
                 <button
                   type="button"
