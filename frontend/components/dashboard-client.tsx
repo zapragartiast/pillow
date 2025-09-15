@@ -1,19 +1,17 @@
 'use client'
 
-import { useTheme } from '@/lib/theme-context'
-import DashboardLayout from './dashboard-layout'
+import React from 'react'
 
 interface DashboardClientProps {
   children: React.ReactNode
 }
 
+/**
+ * DashboardClient
+ * - Previously wrapped the legacy DashboardLayout (which had its own Sidebar).
+ * - Now acts as a thin client boundary to enable any client-only context/hooks
+ *   while letting DashboardChrome control Sidebar/Topbar layout.
+ */
 export default function DashboardClient({ children }: DashboardClientProps) {
-  // This ensures the theme context is available on the client side
-  const { theme } = useTheme()
-
-  return (
-    <DashboardLayout>
-      {children}
-    </DashboardLayout>
-  )
+  return <>{children}</>
 }
