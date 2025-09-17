@@ -48,6 +48,9 @@ func SetupRoutes(db interface{}, logger *logrus.Logger, isLoggingEnabled bool) h
 
 	protected.HandleFunc("/users/{id}", handlers.GetUser(sqlDB)).Methods("GET")
 
+	// User custom field values (protected)
+	protected.HandleFunc("/users/{userId}/custom-field-values", handlers.GetUserCustomFieldValues(sqlDB)).Methods("GET")
+	protected.HandleFunc("/users/{userId}/custom-field-values", handlers.UpdateUserCustomFieldValues(sqlDB)).Methods("PUT")
 	// Admin-only routes - require specific permissions
 	admin := protected.PathPrefix("").Subrouter()
 	admin.Use(middleware.RequirePermissionMux(sqlDB, "manage_users"))

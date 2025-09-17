@@ -51,7 +51,10 @@ export default function UserProfileCustomFields({ userId, onFieldsChange }: User
   const loadUserFields = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/users/${userId}/custom-field-values`)
+      const response = await fetch(`/api/users/${userId}/custom-field-values`, {
+        credentials: 'include',
+        cache: 'no-store'
+      })
 
       if (!response.ok) {
         throw new Error('Failed to load custom fields')
@@ -119,6 +122,7 @@ export default function UserProfileCustomFields({ userId, onFieldsChange }: User
 
       const response = await fetch(`/api/users/${userId}/custom-field-values`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },

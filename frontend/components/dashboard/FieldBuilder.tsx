@@ -59,9 +59,8 @@ export default function FieldBuilder({ userId, onFieldsChange }: FieldBuilderPro
     try {
       setIsLoading(true)
       const response = await fetch(`/api/users/${userId}/custom-field-values`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        credentials: 'include',
+        cache: 'no-store'
       })
 
       if (!response.ok) {
@@ -108,9 +107,9 @@ export default function FieldBuilder({ userId, onFieldsChange }: FieldBuilderPro
 
       const response = await fetch(`/api/users/${userId}/custom-field-values`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ field_values: fieldValues })
       })
@@ -137,9 +136,9 @@ export default function FieldBuilder({ userId, onFieldsChange }: FieldBuilderPro
 
       const response = await fetch(`/api/users/${userId}/custom-field-values`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ field_values: fieldValues })
       })
