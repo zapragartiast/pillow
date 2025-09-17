@@ -17,7 +17,7 @@ import (
 
 func GetUsers(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rows, err := db.Query("SELECT id, username, email, is_active, created_at, updated_at FROM \"Users\" WHERE is_active = true")
+		rows, err := db.Query("SELECT id, username, email, is_active, created_at, updated_at FROM \"users\" WHERE is_active = true")
 		if err != nil {
 			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
@@ -78,7 +78,7 @@ func CreateUser(db *sql.DB) http.HandlerFunc {
 		// Set user as active by default
 		user.IsActive = true
 
-		err = db.QueryRow("INSERT INTO \"Users\" (id, username, password_hash, email, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
+		err = db.QueryRow("INSERT INTO \"users\" (id, username, password_hash, email, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
 			user.ID, user.Username, hashedPassword, user.Email, user.IsActive).Scan(&user.ID)
 		if err != nil {
 			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
@@ -126,7 +126,7 @@ func Login(db *sql.DB) http.HandlerFunc {
 
 		// Get user from database - check both username and email
 		var user models.User
-		err := db.QueryRow("SELECT id, username, password_hash, email, is_active, created_at, updated_at FROM \"Users\" WHERE username = $1 OR email = $1",
+		err := db.QueryRow("SELECT id, username, password_hash, email, is_active, created_at, updated_at FROM \"users\" WHERE username = $1 OR email = $1",
 			loginReq.Identifier).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Email, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 
 		if err != nil {
@@ -183,7 +183,7 @@ func GetUser(db *sql.DB) http.HandlerFunc {
 		}
 
 		var user models.User
-		err = db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"Users\" WHERE id = $1 AND is_active = true",
+		err = db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"users\" WHERE id = $1 AND is_active = true",
 			userID).Scan(&user.ID, &user.Username, &user.Email, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
 
 		if err != nil {
@@ -211,7 +211,7 @@ func GetUserProfile(db *sql.DB) http.HandlerFunc {
 
 		// Get fresh user data from database
 		var freshUser models.User
-		err := db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"Users\" WHERE id = $1",
+		err := db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"users\" WHERE id = $1",
 			user.ID).Scan(&freshUser.ID, &freshUser.Username, &freshUser.Email, &freshUser.IsActive, &freshUser.CreatedAt, &freshUser.UpdatedAt)
 
 		if err != nil {
@@ -248,7 +248,7 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 
 		// Check if user exists
 		var existingUser models.User
-		err = db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"Users\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"users\" WHERE id = $1",
 			userID).Scan(&existingUser.ID, &existingUser.Username, &existingUser.Email, &existingUser.IsActive, &existingUser.CreatedAt, &existingUser.UpdatedAt)
 
 		if err != nil {
@@ -288,7 +288,7 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		query := "UPDATE \"Users\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + strconv.Itoa(argCount)
+		query := "UPDATE \"users\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + strconv.Itoa(argCount)
 		args = append(args, userID)
 
 		_, err = db.Exec(query, args...)
@@ -299,7 +299,7 @@ func UpdateUser(db *sql.DB) http.HandlerFunc {
 
 		// Get updated user data
 		var updatedUser models.User
-		err = db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"Users\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, username, email, is_active, created_at, updated_at FROM \"users\" WHERE id = $1",
 			userID).Scan(&updatedUser.ID, &updatedUser.Username, &updatedUser.Email, &updatedUser.IsActive, &updatedUser.CreatedAt, &updatedUser.UpdatedAt)
 
 		if err != nil {
@@ -371,7 +371,7 @@ func DeleteUser(db *sql.DB) http.HandlerFunc {
 
 		// Check if user exists and is active
 		var user models.User
-		err = db.QueryRow("SELECT id, username, email FROM \"Users\" WHERE id = $1 AND is_active = true",
+		err = db.QueryRow("SELECT id, username, email FROM \"users\" WHERE id = $1 AND is_active = true",
 			userID).Scan(&user.ID, &user.Username, &user.Email)
 
 		if err != nil {
@@ -384,7 +384,7 @@ func DeleteUser(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Soft delete by setting is_active to false
-		_, err = db.Exec("UPDATE \"Users\" SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1", userID)
+		_, err = db.Exec("UPDATE \"users\" SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1", userID)
 		if err != nil {
 			writeErrorResponse(w, "Failed to delete user: "+err.Error(), http.StatusInternalServerError, r)
 			return

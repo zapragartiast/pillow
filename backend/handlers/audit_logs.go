@@ -36,7 +36,7 @@ func GetAuditLogs(db *sql.DB) http.HandlerFunc {
 		offset := (page - 1) * limit
 
 		// Query audit logs with pagination
-		query := `SELECT id, user_id, action, details, timestamp FROM "Audit_Log" ORDER BY timestamp DESC LIMIT $1 OFFSET $2`
+		query := `SELECT id, user_id, action, details, timestamp FROM "audit_log" ORDER BY timestamp DESC LIMIT $1 OFFSET $2`
 		rows, err := db.Query(query, limit, offset)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to query audit logs")
@@ -64,7 +64,7 @@ func GetAuditLogs(db *sql.DB) http.HandlerFunc {
 
 		// Get total count for pagination info
 		var totalCount int
-		countQuery := `SELECT COUNT(*) FROM "Audit_Log"`
+		countQuery := `SELECT COUNT(*) FROM "audit_log"`
 		err = db.QueryRow(countQuery).Scan(&totalCount)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to get audit log count")
@@ -98,7 +98,7 @@ func GetAuditLog(db *sql.DB) http.HandlerFunc {
 		}
 
 		var log models.AuditLog
-		query := `SELECT id, user_id, action, details, timestamp FROM "Audit_Log" WHERE id = $1`
+		query := `SELECT id, user_id, action, details, timestamp FROM "audit_log" WHERE id = $1`
 		err := db.QueryRow(query, id).Scan(&log.ID, &log.UserID, &log.Action, &log.Details, &log.Timestamp)
 		if err != nil {
 			if err == sql.ErrNoRows {

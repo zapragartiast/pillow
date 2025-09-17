@@ -35,7 +35,7 @@ type UpdateOrganizationRequest struct {
 // GetOrganizations returns all organizations
 func GetOrganizations(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rows, err := db.Query("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"Organizations\" ORDER BY name")
+		rows, err := db.Query("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"organizations\" ORDER BY name")
 		if err != nil {
 			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
@@ -82,7 +82,7 @@ func GetOrganization(db *sql.DB) http.HandlerFunc {
 		var o models.Organization
 		var managedBy sql.NullString
 		var parentOrg sql.NullString
-		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"Organizations\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"organizations\" WHERE id = $1",
 			orgID).Scan(&o.ID, &o.Name, &o.Description, &o.Domain, &managedBy, &o.CreatedAt, &o.UpdatedAt, &parentOrg)
 
 		if err != nil {
@@ -144,7 +144,7 @@ func CreateOrganization(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		_, err := db.Exec("INSERT INTO \"Organizations\" (id, name, description, domain, managed_by, created_at, updated_at, parent_org_id) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $6)",
+		_, err := db.Exec("INSERT INTO \"organizations\" (id, name, description, domain, managed_by, created_at, updated_at, parent_org_id) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $6)",
 			orgID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Description), strings.TrimSpace(req.Domain), managedBy, parentOrg)
 		if err != nil {
 			writeErrorResponse(w, "Failed to create organization: "+err.Error(), http.StatusInternalServerError, r)
@@ -152,7 +152,7 @@ func CreateOrganization(db *sql.DB) http.HandlerFunc {
 		}
 
 		var o models.Organization
-		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"Organizations\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"organizations\" WHERE id = $1",
 			orgID).Scan(&o.ID, &o.Name, &o.Description, &o.Domain, &managedBy, &o.CreatedAt, &o.UpdatedAt, &parentOrg)
 		if err != nil {
 			writeErrorResponse(w, "Failed to retrieve created organization: "+err.Error(), http.StatusInternalServerError, r)
@@ -215,7 +215,7 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 		var existing models.Organization
 		var mby sql.NullString
 		var porg sql.NullString
-		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at FROM \"Organizations\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at FROM \"organizations\" WHERE id = $1",
 			orgID).Scan(&existing.ID, &existing.Name, &existing.Description, &existing.Domain, &mby, &existing.CreatedAt, &existing.UpdatedAt)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -273,7 +273,7 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 
 		setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
 		// build query (note: use strconv to be safe, but keep simple here)
-		query := "UPDATE \"Organizations\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + strconv.Itoa(argCnt)
+		query := "UPDATE \"organizations\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + strconv.Itoa(argCnt)
 		args = append(args, orgID)
 
 		_, err = db.Exec(query, args...)
@@ -283,7 +283,7 @@ func UpdateOrganization(db *sql.DB) http.HandlerFunc {
 		}
 
 		var updated models.Organization
-		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"Organizations\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, domain, managed_by, created_at, updated_at, parent_org_id FROM \"organizations\" WHERE id = $1",
 			orgID).Scan(&updated.ID, &updated.Name, &updated.Description, &updated.Domain, &mby, &updated.CreatedAt, &updated.UpdatedAt, &porg)
 		if err != nil {
 			writeErrorResponse(w, "Failed to retrieve updated organization: "+err.Error(), http.StatusInternalServerError, r)
@@ -338,7 +338,7 @@ func DeleteOrganization(db *sql.DB) http.HandlerFunc {
 
 		// prevent deletion if child organizations or user memberships exist
 		var childCount int
-		err = db.QueryRow("SELECT COUNT(*) FROM \"Organizations\" WHERE parent_org_id = $1", orgID).Scan(&childCount)
+		err = db.QueryRow("SELECT COUNT(*) FROM \"organizations\" WHERE parent_org_id = $1", orgID).Scan(&childCount)
 		if err != nil {
 			writeErrorResponse(w, "Error checking children: "+err.Error(), http.StatusInternalServerError, r)
 			return
@@ -349,7 +349,7 @@ func DeleteOrganization(db *sql.DB) http.HandlerFunc {
 		}
 
 		var memberCount int
-		err = db.QueryRow("SELECT COUNT(*) FROM \"User_Organizations\" WHERE org_id = $1", orgID).Scan(&memberCount)
+		err = db.QueryRow("SELECT COUNT(*) FROM \"user_organizations\" WHERE org_id = $1", orgID).Scan(&memberCount)
 		if err != nil {
 			writeErrorResponse(w, "Error checking memberships: "+err.Error(), http.StatusInternalServerError, r)
 			return
@@ -359,7 +359,7 @@ func DeleteOrganization(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec("DELETE FROM \"Organizations\" WHERE id = $1", orgID)
+		_, err = db.Exec("DELETE FROM \"organizations\" WHERE id = $1", orgID)
 		if err != nil {
 			writeErrorResponse(w, "Failed to delete organization: "+err.Error(), http.StatusInternalServerError, r)
 			return

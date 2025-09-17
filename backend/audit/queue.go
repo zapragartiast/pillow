@@ -56,7 +56,7 @@ func (q *Queue) Shutdown() {
 	<-q.done
 }
 
-// worker consumes events and writes them to the Audit_Log table
+// worker consumes events and writes them to the audit_log table
 func (q *Queue) worker() {
 	defer close(q.done)
 	for ev := range q.ch {
@@ -68,7 +68,7 @@ func (q *Queue) worker() {
 
 		// best-effort insert; log error but continue
 		_, err = q.db.Exec(
-			`INSERT INTO "Audit_Log" (id, user_id, action, details, timestamp) VALUES ($1, $2, $3, $4, $5)`,
+			`INSERT INTO "audit_log" (id, user_id, action, details, timestamp) VALUES ($1, $2, $3, $4, $5)`,
 			ev.ID, ev.UserID, ev.Action, string(detailsBytes), ev.Timestamp,
 		)
 		if err != nil {

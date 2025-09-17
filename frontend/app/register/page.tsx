@@ -1,12 +1,20 @@
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { RegisterForm } from '@/components/register-form'
 
 interface RegisterPageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams?: { [key: string]: string | string[] | undefined }
 }
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
-  const params = await searchParams
-  const error = typeof params.error === 'string' ? params.error : null
+  const cookieStore = await cookies()
+  const token = cookieStore.get('pillow_token')?.value
 
-  return <RegisterForm error={error} />
+  if (token) {
+    redirect('/dashboard')
+  }
+
+  const errorParam = typeof searchParams?.error === 'string' ? searchParams?.error : null
+
+  return <RegisterForm error={errorParam} />
 }

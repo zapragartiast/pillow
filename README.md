@@ -17,14 +17,14 @@ This project implements a full-featured User Management System with the followin
 
 The system uses PostgreSQL with the following main tables:
 
-- **Users**: User accounts with authentication details
-- **Roles**: System roles (e.g., admin, user, manager)
-- **Permissions**: Granular permissions (e.g., read_user, create_user)
-- **Organizations**: Multi-tenant organization support
-- **Role_Permissions**: Many-to-many relationship between roles and permissions
-- **User_Roles**: User-role assignments with scope support
-- **User_Organizations**: User-organization memberships
-- **Audit_Log**: Comprehensive audit trail for all user actions
+- **users**: User accounts with authentication details
+- **roles**: System roles (e.g., admin, user, manager)
+- **permissions**: Granular permissions (e.g., read_user, create_user)
+- **organizations**: Multi-tenant organization support
+- **role_permissions**: Many-to-many relationship between roles and permissions
+- **user_roles**: User-role assignments with scope support
+- **user_organizations**: User-organization memberships
+- **audit_log**: Comprehensive audit trail for all user actions
 
 All tables use UUID for primary keys and include proper foreign key relationships and indexes.
 
@@ -77,7 +77,7 @@ All tables use UUID for primary keys and include proper foreign key relationship
    - Add password strength validation
    - Create password reset functionality
 
-5. **Create models for Roles, Permissions, Organizations**
+5. **Create models for Roles, permissions, Organizations**
    - Define Go structs for all database entities
    - Implement relationships and associations
    - Add JSON serialization tags

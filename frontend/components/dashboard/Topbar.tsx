@@ -1,6 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTheme } from '@/lib/theme-context'
 import {
   ChevronRight,
@@ -20,6 +22,7 @@ import {
   HelpCircle,
   Bell,
   ChevronDown,
+  LogOut,
 } from 'lucide-react'
 
 type Breadcrumb = { label: string; href?: string }
@@ -48,6 +51,26 @@ export default function Topbar({
 }: TopbarProps) {
   const { theme, toggleTheme } = useTheme()
   const activeProject = projects.find(p => p.id === activeProjectId) ?? projects[0]
+  const router = useRouter()
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      // Clear compatibility localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pillow_user')
+      }
+      // Invalidate httpOnly cookies on the server
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    } catch (e) {
+      // no-op; continue to navigate regardless
+      console.error('Logout error:', e)
+    } finally {
+      // Ensure navigation and revalidation
+      router.replace('/login')
+      router.refresh()
+    }
+  }
 
   return (
     <header
@@ -78,7 +101,7 @@ export default function Topbar({
           <span className="inline-flex items-center gap-1.5 px-2 py-[5px] rounded-full border border-gray-200 text-gray-700 bg-white shadow-sm dark:lg:bg-zinc-900 dark:border-gray-800 dark:text-gray-200">
             <User className="h-3.5 w-3.5" />
             <span className="truncate max-w-[9rem]">hosting.com Ticket</span>
-            <span className="ml-1 rounded-full bg-gray-100 text-gray-700 px-1.5 text-[11px] border border-gray-200 hidden sm:inline">Super Premium</span>
+            <span className="ml-1 rounded-full bg-gray-100 text-gray-700 px-1.5 text-[11px] border border-gray-200 hidden sm:inline">Premium</span>
           </span>
 
           <span className="text-gray-300 dark:text-gray-600 select-none">/</span>
@@ -196,15 +219,43 @@ export default function Topbar({
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button> */}
 
-          {/* Avatar placeholder */}
-          <button
-            type="button"
-            className="inline-flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-200 text-gray-700 border border-gray-300 hover:ring-2 hover:ring-emerald-400 focus:outline-none dark:bg-zinc-800 dark:text-gray-200 dark:border-gray-700"
-            aria-label="Account menu"
-            title="Account"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
+          {/* Account menu */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowAccountMenu(!showAccountMenu)}
+              className="inline-flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-200 text-gray-700 border border-gray-300 hover:ring-2 hover:ring-emerald-400 focus:outline-none dark:bg-zinc-800 dark:text-gray-200 dark:border-gray-700"
+              aria-label="Account menu"
+              title="Account"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+
+            {showAccountMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                <div className="py-1">
+                  <Link
+                    href="/dashboard/profile"
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => setShowAccountMenu(false)}
+                  >
+                    <User className="h-4 w-4 mr-3" />
+                    Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowAccountMenu(false)
+                      handleLogout()
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <LogOut className="h-4 w-4 mr-3" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

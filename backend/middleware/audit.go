@@ -35,7 +35,7 @@ func (wc *statusCapturingResponseWriter) Write(b []byte) (int, error) {
 	return wc.ResponseWriter.Write(b)
 }
 
-// AuditEntry represents the payload stored in Audit_Log.details
+// AuditEntry represents the payload stored in audit_log.details
 type AuditEntry struct {
 	Method  string      `json:"method"`
 	Path    string      `json:"path"`
@@ -46,7 +46,7 @@ type AuditEntry struct {
 
 // WithAuditAction returns a new context containing audit action name and structured details.
 // Handlers should call this before returning if they want the middleware to write a specific
-// action name (e.g. "USER_UPDATED") and structured details JSON into the Audit_Log.
+// action name (e.g. "USER_UPDATED") and structured details JSON into the audit_log.
 func WithAuditAction(ctx context.Context, actionName string, details interface{}) context.Context {
 	if actionName != "" {
 		ctx = context.WithValue(ctx, contextKey("audit_action_name"), actionName)
@@ -58,7 +58,7 @@ func WithAuditAction(ctx context.Context, actionName string, details interface{}
 }
 
 // AuditMiddlewareMux returns a mux-compatible middleware that records requests.
-// It writes a row into "Audit_Log" for mutating methods (POST, PUT, DELETE).
+// It writes a row into "audit_log" for mutating methods (POST, PUT, DELETE).
 // For safety it reads a copy of the request body (if present) but never modifies it.
 func AuditMiddlewareMux(db *sql.DB) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -68,18 +68,29 @@ func AuditMiddlewareMux(db *sql.DB) func(next http.Handler) http.Handler {
 			// Clone body if present and readable
 			var bodyCopy interface{}
 			if r.Body != nil && (r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodDelete) {
-				// read body
-				b, err := io.ReadAll(r.Body)
-				if err == nil && len(b) > 0 {
-					// try to parse json, fallback to string
-					var parsed interface{}
-					if err := json.Unmarshal(b, &parsed); err == nil {
-						bodyCopy = parsed
-					} else {
-						bodyCopy = string(b)
+				contentType := r.Header.Get("Content-Type")
+				// For file uploads (multipart/form-data), don't store the actual file content in audit log
+				// to prevent database bloat. Store metadata only.
+				if strings.Contains(contentType, "multipart/form-data") {
+					bodyCopy = map[string]interface{}{
+						"content_type": contentType,
+						"upload_type":  "file",
+						"note":         "File content omitted from audit log to prevent storage bloat",
 					}
-					// restore r.Body so handler can read it
-					r.Body = io.NopCloser(strings.NewReader(string(b)))
+				} else {
+					// read body
+					b, err := io.ReadAll(r.Body)
+					if err == nil && len(b) > 0 {
+						// try to parse json, fallback to string
+						var parsed interface{}
+						if err := json.Unmarshal(b, &parsed); err == nil {
+							bodyCopy = parsed
+						} else {
+							bodyCopy = string(b)
+						}
+						// restore r.Body so handler can read it
+						r.Body = io.NopCloser(strings.NewReader(string(b)))
+					}
 				}
 			}
 
@@ -179,7 +190,7 @@ func AuditMiddlewareMux(db *sql.DB) func(next http.Handler) http.Handler {
 					enqueued = audit.Q.Enqueue(ev)
 				}
 				if !enqueued {
-					_, _ = db.Exec(`INSERT INTO "Audit_Log" (id, user_id, action, details, timestamp) VALUES ($1, $2, $3, $4, $5)`,
+					_, _ = db.Exec(`INSERT INTO "audit_log" (id, user_id, action, details, timestamp) VALUES ($1, $2, $3, $4, $5)`,
 						uuid.New(), actorID, actionStr, string(detailsBytes), time.Now())
 				}
 

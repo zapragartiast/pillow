@@ -8,7 +8,7 @@
 
 
 -- Table Definition
-CREATE TABLE "public"."Roles" (
+CREATE TABLE "public"."roles" (
     "id" uuid NOT NULL,
     "name" varchar(50) NOT NULL,
     "description" text,
@@ -18,16 +18,15 @@ CREATE TABLE "public"."Roles" (
 );
 
 -- Table Definition
-CREATE TABLE "public"."Role_Permissions" (
+CREATE TABLE "public"."role_permissions" (
     "role_id" uuid NOT NULL,
     "permission_id" uuid,
     "created_at" timestamp DEFAULT now(),
-    "updated_at" timestamp DEFAULT now(),
-    PRIMARY KEY ("role_id")
+    "updated_at" timestamp DEFAULT now()
 );
 
 -- Table Definition
-CREATE TABLE "public"."Users" (
+CREATE TABLE "public"."users" (
     "id" uuid NOT NULL,
     "username" varchar(50) NOT NULL,
     "password_hash" text NOT NULL,
@@ -39,7 +38,7 @@ CREATE TABLE "public"."Users" (
 );
 
 -- Table Definition
-CREATE TABLE "public"."Organizations" (
+CREATE TABLE "public"."organizations" (
     "id" uuid NOT NULL,
     "name" varchar(100) NOT NULL,
     "description" text,
@@ -52,7 +51,7 @@ CREATE TABLE "public"."Organizations" (
 );
 
 -- Table Definition
-CREATE TABLE "public"."User_Roles" (
+CREATE TABLE "public"."user_roles" (
     "user_id" uuid,
     "role_id" uuid,
     "scope" varchar(50) DEFAULT 'org'::character varying,
@@ -62,7 +61,7 @@ CREATE TABLE "public"."User_Roles" (
 );
 
 -- Table Definition
-CREATE TABLE "public"."Permissions" (
+CREATE TABLE "public"."permissions" (
     "id" uuid NOT NULL,
     "name" varchar(50) NOT NULL,
     "description" text,
@@ -73,7 +72,7 @@ CREATE TABLE "public"."Permissions" (
 );
 
 -- Table Definition
-CREATE TABLE "public"."User_Organizations" (
+CREATE TABLE "public"."user_organizations" (
     "id" uuid NOT NULL,
     "user_id" uuid,
     "org_id" uuid,
@@ -85,7 +84,7 @@ CREATE TABLE "public"."User_Organizations" (
 );
 
 -- Table Definition
-CREATE TABLE "public"."Audit_Log" (
+CREATE TABLE "public"."audit_log" (
     "id" uuid NOT NULL,
     "user_id" uuid,
     "action" varchar(100),
@@ -94,31 +93,95 @@ CREATE TABLE "public"."Audit_Log" (
     PRIMARY KEY ("id")
 );
 
+-- Create custom_fields table for global field definitions
+CREATE TABLE IF NOT EXISTS "public"."custom_fields" (
+    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "name" varchar(100) NOT NULL,
+    "label" varchar(255) NOT NULL,
+    "type" varchar(50) NOT NULL,
+    "required" boolean DEFAULT false,
+    "options" jsonb, -- For select/multiselect fields
+    "validation" jsonb, -- Validation rules
+    "order" integer DEFAULT 0,
+    "is_active" boolean DEFAULT true,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    PRIMARY KEY ("id")
+);
+
+-- Create user_custom_field_values table for storing user-specific values
+CREATE TABLE IF NOT EXISTS "public"."user_custom_field_values" (
+    "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" uuid NOT NULL,
+    "field_id" uuid NOT NULL,
+    "value" text, -- Store as text, parse based on field type
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    PRIMARY KEY ("id"),
+    UNIQUE ("user_id", "field_id") -- One value per user per field
+);
+
+-- Add indexes for better performance
+CREATE INDEX IF NOT EXISTS "custom_fields_name_idx" ON "public"."custom_fields" ("name");
+CREATE INDEX IF NOT EXISTS "custom_fields_active_idx" ON "public"."custom_fields" ("is_active");
+CREATE INDEX IF NOT EXISTS "user_custom_field_values_user_id_idx" ON "public"."user_custom_field_values" ("user_id");
+CREATE INDEX IF NOT EXISTS "user_custom_field_values_field_id_idx" ON "public"."user_custom_field_values" ("field_id");
+
+-- Add foreign key constraints
+ALTER TABLE "public"."user_custom_field_values"
+ADD CONSTRAINT "fk_user_custom_field_values_user_id"
+FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
+
+ALTER TABLE "public"."user_custom_field_values"
+ADD CONSTRAINT "fk_user_custom_field_values_field_id"
+FOREIGN KEY ("field_id") REFERENCES "public"."custom_fields"("id") ON DELETE CASCADE;
+
+-- Add comments
+COMMENT ON TABLE "public"."custom_fields" IS 'Global custom field definitions that apply to all users';
+COMMENT ON TABLE "public"."user_custom_field_values" IS 'User-specific values for global custom fields';
+COMMENT ON COLUMN "public"."custom_fields"."type" IS 'Field type: text, textarea, number, email, phone, date, boolean, select, multiselect';
+COMMENT ON COLUMN "public"."custom_fields"."options" IS 'JSON array of options for select/multiselect fields';
+COMMENT ON COLUMN "public"."custom_fields"."validation" IS 'JSON object with validation rules (min_length, max_length, min, max, pattern)';
+
+-- Insert some sample global fields (optional)
+-- Uncomment these lines to add sample fields
+/*
+INSERT INTO "public"."custom_fields" ("name", "label", "type", "required", "order") VALUES
+('full_name', 'Full Name', 'text', false, 1),
+('phone_number', 'Phone Number', 'phone', false, 2),
+('date_of_birth', 'Date of Birth', 'date', false, 3),
+('department', 'Department', 'select', false, 4),
+('bio', 'Bio', 'textarea', false, 5);
+
+-- Add options for department field
+UPDATE "public"."custom_fields"
+SET "options" = '["Engineering", "Marketing", "Sales", "HR", "Finance"]'::jsonb
+WHERE "name" = 'department';
+*/
+
+-- Indices
+CREATE INDEX "roles_name_key" ON public."roles" USING btree (name);
+ALTER TABLE "public"."role_permissions" ADD FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id");
+ALTER TABLE "public"."role_permissions" ADD FOREIGN KEY ("permission_id") REFERENCES "public"."permissions"("id");
 
 
 -- Indices
-CREATE INDEX "Roles_name_key" ON public."Roles" USING btree (name);
-ALTER TABLE "public"."Role_Permissions" ADD FOREIGN KEY ("role_id") REFERENCES "public"."Roles"("id");
-ALTER TABLE "public"."Role_Permissions" ADD FOREIGN KEY ("permission_id") REFERENCES "public"."Permissions"("id");
+CREATE UNIQUE INDEX "users_username_key" ON public."users" USING btree (username);
+CREATE UNIQUE INDEX "users_email_key" ON public."users" USING btree (email);
+ALTER TABLE "public"."organizations" ADD FOREIGN KEY ("parent_org_id") REFERENCES "public"."organizations"("id");
+ALTER TABLE "public"."organizations" ADD FOREIGN KEY ("managed_by") REFERENCES "public"."users"("id");
 
 
 -- Indices
-CREATE UNIQUE INDEX "Users_username_key" ON public."Users" USING btree (username);
-CREATE UNIQUE INDEX "Users_email_key" ON public."Users" USING btree (email);
-ALTER TABLE "public"."Organizations" ADD FOREIGN KEY ("parent_org_id") REFERENCES "public"."Organizations"("id");
-ALTER TABLE "public"."Organizations" ADD FOREIGN KEY ("managed_by") REFERENCES "public"."Users"("id");
+CREATE UNIQUE INDEX "organizations_name_key" ON public."organizations" USING btree (name);
+ALTER TABLE "public"."user_roles" ADD FOREIGN KEY ("user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "public"."user_roles" ADD FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id");
 
 
 -- Indices
-CREATE UNIQUE INDEX "Organizations_name_key" ON public."Organizations" USING btree (name);
-ALTER TABLE "public"."User_Roles" ADD FOREIGN KEY ("user_id") REFERENCES "public"."Users"("id");
-ALTER TABLE "public"."User_Roles" ADD FOREIGN KEY ("role_id") REFERENCES "public"."Roles"("id");
-
-
--- Indices
-CREATE UNIQUE INDEX "Permissions_name_key" ON public."Permissions" USING btree (name);
-ALTER TABLE "public"."User_Organizations" ADD FOREIGN KEY ("invited_by") REFERENCES "public"."Users"("id");
-ALTER TABLE "public"."User_Organizations" ADD FOREIGN KEY ("role_id") REFERENCES "public"."Roles"("id");
-ALTER TABLE "public"."User_Organizations" ADD FOREIGN KEY ("user_id") REFERENCES "public"."Users"("id");
-ALTER TABLE "public"."User_Organizations" ADD FOREIGN KEY ("org_id") REFERENCES "public"."Organizations"("id");
-ALTER TABLE "public"."Audit_Log" ADD FOREIGN KEY ("user_id") REFERENCES "public"."Users"("id");
+CREATE UNIQUE INDEX "permissions_name_key" ON public."permissions" USING btree (name);
+ALTER TABLE "public"."user_organizations" ADD FOREIGN KEY ("invited_by") REFERENCES "public"."users"("id");
+ALTER TABLE "public"."user_organizations" ADD FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id");
+ALTER TABLE "public"."user_organizations" ADD FOREIGN KEY ("user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "public"."user_organizations" ADD FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id");
+ALTER TABLE "public"."audit_log" ADD FOREIGN KEY ("user_id") REFERENCES "public"."users"("id");

@@ -29,7 +29,7 @@ type UpdatePermissionRequest struct {
 // GetPermissions retrieves all permissions
 func GetPermissions(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rows, err := db.Query("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" ORDER BY name")
+		rows, err := db.Query("SELECT id, name, description, scope_level, created_at, updated_at FROM \"permissions\" ORDER BY name")
 		if err != nil {
 			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
@@ -65,7 +65,7 @@ func GetPermission(db *sql.DB) http.HandlerFunc {
 		}
 
 		var permission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"permissions\" WHERE id = $1",
 			permissionID).Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 
 		if err != nil {
@@ -104,7 +104,7 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Check if permission name already exists
 		var existingID uuid.UUID
-		err := db.QueryRow("SELECT id FROM \"Permissions\" WHERE name = $1", req.Name).Scan(&existingID)
+		err := db.QueryRow("SELECT id FROM \"permissions\" WHERE name = $1", req.Name).Scan(&existingID)
 		if err == nil {
 			writeErrorResponse(w, "Permission with this name already exists", http.StatusConflict, r)
 			return
@@ -115,7 +115,7 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Create new permission
 		permissionID := uuid.New()
-		_, err = db.Exec("INSERT INTO \"Permissions\" (id, name, description, scope_level, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+		_, err = db.Exec("INSERT INTO \"permissions\" (id, name, description, scope_level, created_at, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
 			permissionID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Description), scopeLevel)
 
 		if err != nil {
@@ -125,7 +125,7 @@ func CreatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Get the created permission
 		var permission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"permissions\" WHERE id = $1",
 			permissionID).Scan(&permission.ID, &permission.Name, &permission.Description, &permission.ScopeLevel, &permission.CreatedAt, &permission.UpdatedAt)
 
 		if err != nil {
@@ -181,7 +181,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Check if permission exists
 		var existingPermission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"permissions\" WHERE id = $1",
 			permissionID).Scan(&existingPermission.ID, &existingPermission.Name, &existingPermission.Description, &existingPermission.ScopeLevel, &existingPermission.CreatedAt, &existingPermission.UpdatedAt)
 
 		if err != nil {
@@ -196,7 +196,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 		// Check for name conflicts if name is being updated
 		if req.Name != "" && req.Name != existingPermission.Name {
 			var existingID uuid.UUID
-			err := db.QueryRow("SELECT id FROM \"Permissions\" WHERE name = $1 AND id != $2",
+			err := db.QueryRow("SELECT id FROM \"permissions\" WHERE name = $1 AND id != $2",
 				req.Name, permissionID).Scan(&existingID)
 			if err == nil {
 				writeErrorResponse(w, "Permission with this name already exists", http.StatusConflict, r)
@@ -236,7 +236,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 		}
 
 		setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
-		query := "UPDATE \"Permissions\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + string(rune('0'+argCount))
+		query := "UPDATE \"permissions\" SET " + strings.Join(setParts, ", ") + " WHERE id = $" + string(rune('0'+argCount))
 		args = append(args, permissionID)
 
 		_, err = db.Exec(query, args...)
@@ -247,7 +247,7 @@ func UpdatePermission(db *sql.DB) http.HandlerFunc {
 
 		// Get updated permission
 		var updatedPermission models.Permission
-		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"Permissions\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name, description, scope_level, created_at, updated_at FROM \"permissions\" WHERE id = $1",
 			permissionID).Scan(&updatedPermission.ID, &updatedPermission.Name, &updatedPermission.Description, &updatedPermission.ScopeLevel, &updatedPermission.CreatedAt, &updatedPermission.UpdatedAt)
 
 		if err != nil {
@@ -296,7 +296,7 @@ func DeletePermission(db *sql.DB) http.HandlerFunc {
 
 		// Check if permission exists
 		var permission models.Permission
-		err = db.QueryRow("SELECT id, name FROM \"Permissions\" WHERE id = $1",
+		err = db.QueryRow("SELECT id, name FROM \"permissions\" WHERE id = $1",
 			permissionID).Scan(&permission.ID, &permission.Name)
 
 		if err != nil {
@@ -310,7 +310,7 @@ func DeletePermission(db *sql.DB) http.HandlerFunc {
 
 		// Check if permission is being used by any roles
 		var roleCount int
-		err = db.QueryRow("SELECT COUNT(*) FROM \"Role_Permissions\" WHERE permission_id = $1", permissionID).Scan(&roleCount)
+		err = db.QueryRow("SELECT COUNT(*) FROM \"role_permissions\" WHERE permission_id = $1", permissionID).Scan(&roleCount)
 		if err != nil {
 			writeErrorResponse(w, err.Error(), http.StatusInternalServerError, r)
 			return
@@ -322,7 +322,7 @@ func DeletePermission(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Delete permission
-		_, err = db.Exec("DELETE FROM \"Permissions\" WHERE id = $1", permissionID)
+		_, err = db.Exec("DELETE FROM \"permissions\" WHERE id = $1", permissionID)
 		if err != nil {
 			writeErrorResponse(w, "Failed to delete permission: "+err.Error(), http.StatusInternalServerError, r)
 			return

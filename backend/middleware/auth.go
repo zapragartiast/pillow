@@ -42,7 +42,7 @@ func AuthMiddleware(db *sql.DB) func(http.HandlerFunc) http.HandlerFunc {
 
 			// Get user from database to ensure they still exist and are active
 			var user models.User
-			err = db.QueryRow("SELECT id, username, email, is_active, created_at FROM \"Users\" WHERE id = $1",
+			err = db.QueryRow("SELECT id, username, email, is_active, created_at FROM \"users\" WHERE id = $1",
 				claims.UserID).Scan(&user.ID, &user.Username, &user.Email, &user.IsActive, &user.CreatedAt)
 
 			if err != nil {
@@ -89,7 +89,7 @@ func OptionalAuthMiddleware(db *sql.DB) func(http.HandlerFunc) http.HandlerFunc 
 					if err == nil {
 						// Get user from database
 						var user models.User
-						err = db.QueryRow("SELECT id, username, email, is_active, created_at FROM \"Users\" WHERE id = $1",
+						err = db.QueryRow("SELECT id, username, email, is_active, created_at FROM \"users\" WHERE id = $1",
 							claims.UserID).Scan(&user.ID, &user.Username, &user.Email, &user.IsActive, &user.CreatedAt)
 
 						if err == nil && user.IsActive {
@@ -130,7 +130,7 @@ func AuthMiddlewareMux(db *sql.DB) mux.MiddlewareFunc {
 
 			// Get user from database to ensure they still exist and are active
 			var user models.User
-			err = db.QueryRow("SELECT id, username, email, is_active, created_at FROM \"Users\" WHERE id = $1",
+			err = db.QueryRow("SELECT id, username, email, is_active, created_at FROM \"users\" WHERE id = $1",
 				claims.UserID).Scan(&user.ID, &user.Username, &user.Email, &user.IsActive, &user.CreatedAt)
 
 			if err != nil {

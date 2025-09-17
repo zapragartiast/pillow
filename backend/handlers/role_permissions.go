@@ -29,7 +29,7 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 
 		// Check if role exists
 		var role models.Role
-		err = db.QueryRow("SELECT id, name FROM \"Roles\" WHERE id = $1", roleID).Scan(&role.ID, &role.Name)
+		err = db.QueryRow("SELECT id, name FROM \"roles\" WHERE id = $1", roleID).Scan(&role.ID, &role.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				writeErrorResponse(w, "Role not found", http.StatusNotFound, r)
@@ -42,8 +42,8 @@ func GetRolePermissions(db *sql.DB) http.HandlerFunc {
 		// Get permissions for this role
 		rows, err := db.Query(`
 			SELECT p.id, p.name, p.description, p.scope_level, p.created_at, p.updated_at
-			FROM "Permissions" p
-			INNER JOIN "Role_Permissions" rp ON p.id = rp.permission_id
+			FROM "permissions" p
+			INNER JOIN "role_permissions" rp ON p.id = rp.permission_id
 			WHERE rp.role_id = $1
 			ORDER BY p.name
 		`, roleID)
@@ -95,7 +95,7 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 
 		// Check if role exists
 		var role models.Role
-		err = db.QueryRow("SELECT id, name FROM \"Roles\" WHERE id = $1", roleID).Scan(&role.ID, &role.Name)
+		err = db.QueryRow("SELECT id, name FROM \"roles\" WHERE id = $1", roleID).Scan(&role.ID, &role.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				writeErrorResponse(w, "Role not found", http.StatusNotFound, r)
@@ -107,7 +107,7 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 
 		// Check if permission exists
 		var permission models.Permission
-		err = db.QueryRow("SELECT id, name FROM \"Permissions\" WHERE id = $1", req.PermissionID).Scan(&permission.ID, &permission.Name)
+		err = db.QueryRow("SELECT id, name FROM \"permissions\" WHERE id = $1", req.PermissionID).Scan(&permission.ID, &permission.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				writeErrorResponse(w, "Permission not found", http.StatusNotFound, r)
@@ -119,7 +119,7 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 
 		// Check if assignment already exists
 		var existingID uuid.UUID
-		err = db.QueryRow("SELECT role_id FROM \"Role_Permissions\" WHERE role_id = $1 AND permission_id = $2",
+		err = db.QueryRow("SELECT role_id FROM \"role_permissions\" WHERE role_id = $1 AND permission_id = $2",
 			roleID, req.PermissionID).Scan(&existingID)
 
 		if err == nil {
@@ -131,7 +131,7 @@ func AssignPermissionToRole(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Create the assignment
-		_, err = db.Exec("INSERT INTO \"Role_Permissions\" (role_id, permission_id, created_at, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+		_, err = db.Exec("INSERT INTO \"role_permissions\" (role_id, permission_id, created_at, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
 			roleID, req.PermissionID)
 
 		if err != nil {
@@ -170,7 +170,7 @@ func RemovePermissionFromRole(db *sql.DB) http.HandlerFunc {
 
 		// Check if assignment exists
 		var existingRoleID uuid.UUID
-		err = db.QueryRow("SELECT role_id FROM \"Role_Permissions\" WHERE role_id = $1 AND permission_id = $2",
+		err = db.QueryRow("SELECT role_id FROM \"role_permissions\" WHERE role_id = $1 AND permission_id = $2",
 			roleID, permissionID).Scan(&existingRoleID)
 
 		if err != nil {
@@ -183,7 +183,7 @@ func RemovePermissionFromRole(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Remove the assignment
-		_, err = db.Exec("DELETE FROM \"Role_Permissions\" WHERE role_id = $1 AND permission_id = $2",
+		_, err = db.Exec("DELETE FROM \"role_permissions\" WHERE role_id = $1 AND permission_id = $2",
 			roleID, permissionID)
 
 		if err != nil {
@@ -214,7 +214,7 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 
 		// Check if permission exists
 		var permission models.Permission
-		err = db.QueryRow("SELECT id, name FROM \"Permissions\" WHERE id = $1", permissionID).Scan(&permission.ID, &permission.Name)
+		err = db.QueryRow("SELECT id, name FROM \"permissions\" WHERE id = $1", permissionID).Scan(&permission.ID, &permission.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				writeErrorResponse(w, "Permission not found", http.StatusNotFound, r)
@@ -227,8 +227,8 @@ func GetPermissionRoles(db *sql.DB) http.HandlerFunc {
 		// Get roles that have this permission
 		rows, err := db.Query(`
 			SELECT r.id, r.name, r.description, r.created_at, r.updated_at
-			FROM "Roles" r
-			INNER JOIN "Role_Permissions" rp ON r.id = rp.role_id
+			FROM "roles" r
+			INNER JOIN "role_permissions" rp ON r.id = rp.role_id
 			WHERE rp.permission_id = $1
 			ORDER BY r.name
 		`, permissionID)

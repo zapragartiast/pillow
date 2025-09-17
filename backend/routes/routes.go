@@ -45,6 +45,7 @@ func SetupRoutes(db interface{}, logger *logrus.Logger, isLoggingEnabled bool) h
 	// User routes (protected)
 	protected.HandleFunc("/users", handlers.GetUsers(sqlDB)).Methods("GET")
 	protected.HandleFunc("/users/profile", handlers.GetUserProfile(sqlDB)).Methods("GET")
+
 	protected.HandleFunc("/users/{id}", handlers.GetUser(sqlDB)).Methods("GET")
 
 	// Admin-only routes - require specific permissions
@@ -53,6 +54,11 @@ func SetupRoutes(db interface{}, logger *logrus.Logger, isLoggingEnabled bool) h
 
 	admin.HandleFunc("/users/{id}", handlers.UpdateUser(sqlDB)).Methods("PUT")
 	admin.HandleFunc("/users/{id}", handlers.DeleteUser(sqlDB)).Methods("DELETE")
+	// Global custom fields management - require admin permission
+	// admin.HandleFunc("/global-custom-fields", handlers.GetGlobalCustomFields(sqlDB)).Methods("GET")
+	// admin.HandleFunc("/global-custom-fields", handlers.CreateGlobalCustomField(sqlDB)).Methods("POST")
+	// admin.HandleFunc("/global-custom-fields/{fieldId}", handlers.UpdateGlobalCustomField(sqlDB)).Methods("PUT")
+	// admin.HandleFunc("/global-custom-fields/{fieldId}", handlers.DeleteGlobalCustomField(sqlDB)).Methods("DELETE")
 
 	// Audit log routes - require admin permission for viewing transaction logs
 	admin.HandleFunc("/audit-logs", handlers.GetAuditLogs(sqlDB)).Methods("GET")
@@ -86,6 +92,16 @@ func SetupRoutes(db interface{}, logger *logrus.Logger, isLoggingEnabled bool) h
 	// Permission-role relationship queries
 	permissionManager.HandleFunc("/permissions/{permissionId}/roles", handlers.GetPermissionRoles(sqlDB)).Methods("GET")
 
+	// Custom fields management routes - require custom fields management permission
+	customFieldsManager := protected.PathPrefix("").Subrouter()
+	customFieldsManager.Use(middleware.RequirePermissionMux(sqlDB, "manage_custom_fields"))
+
+	customFieldsManager.HandleFunc("/global-custom-fields", handlers.GetGlobalCustomFields(sqlDB)).Methods("GET")
+	customFieldsManager.HandleFunc("/global-custom-fields", handlers.CreateGlobalCustomField(sqlDB)).Methods("POST")
+	customFieldsManager.HandleFunc("/global-custom-fields/{fieldId}", handlers.UpdateGlobalCustomField(sqlDB)).Methods("PUT")
+	customFieldsManager.HandleFunc("/global-custom-fields/{fieldId}", handlers.DeleteGlobalCustomField(sqlDB)).Methods("DELETE")
+	customFieldsManager.HandleFunc("/upload", handlers.UploadFile(sqlDB)).Methods("POST")
+
 	// Organization management routes
 	orgManager := protected.PathPrefix("").Subrouter()
 	orgManager.Use(middleware.RequirePermissionMux(sqlDB, "manage_organizations"))
@@ -94,6 +110,9 @@ func SetupRoutes(db interface{}, logger *logrus.Logger, isLoggingEnabled bool) h
 	orgManager.HandleFunc("/organizations", handlers.CreateOrganization(sqlDB)).Methods("POST")
 	orgManager.HandleFunc("/organizations/{id}", handlers.UpdateOrganization(sqlDB)).Methods("PUT")
 	orgManager.HandleFunc("/organizations/{id}", handlers.DeleteOrganization(sqlDB)).Methods("DELETE")
+
+	// Static file server for uploaded files
+	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 
 	return cors.CORS(
 		cors.AllowedOrigins([]string{"http://localhost:3000"}),

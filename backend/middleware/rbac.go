@@ -13,8 +13,8 @@ import (
 func GetUserRoles(db *sql.DB, userID uuid.UUID) ([]models.Role, error) {
 	query := `
 		SELECT r.id, r.name, r.description, r.created_at
-		FROM "Roles" r
-		INNER JOIN "User_Roles" ur ON r.id = ur.role_id
+		FROM "roles" r
+		INNER JOIN "user_roles" ur ON r.id = ur.role_id
 		WHERE ur.user_id = $1
 	`
 
@@ -41,9 +41,9 @@ func GetUserRoles(db *sql.DB, userID uuid.UUID) ([]models.Role, error) {
 func GetUserPermissions(db *sql.DB, userID uuid.UUID) ([]models.Permission, error) {
 	query := `
 		SELECT DISTINCT p.id, p.name, p.description, p.scope_level
-		FROM "Permissions" p
-		INNER JOIN "Role_Permissions" rp ON p.id = rp.permission_id
-		INNER JOIN "User_Roles" ur ON rp.role_id = ur.role_id
+		FROM "permissions" p
+		INNER JOIN "role_permissions" rp ON p.id = rp.permission_id
+		INNER JOIN "user_roles" ur ON rp.role_id = ur.role_id
 		WHERE ur.user_id = $1
 	`
 
@@ -70,9 +70,9 @@ func GetUserPermissions(db *sql.DB, userID uuid.UUID) ([]models.Permission, erro
 func HasPermission(db *sql.DB, userID uuid.UUID, permissionName string) (bool, error) {
 	query := `
 		SELECT COUNT(*) > 0
-		FROM "Permissions" p
-		INNER JOIN "Role_Permissions" rp ON p.id = rp.permission_id
-		INNER JOIN "User_Roles" ur ON rp.role_id = ur.role_id
+		FROM "permissions" p
+		INNER JOIN "role_permissions" rp ON p.id = rp.permission_id
+		INNER JOIN "user_roles" ur ON rp.role_id = ur.role_id
 		WHERE ur.user_id = $1 AND p.name = $2
 	`
 
@@ -89,8 +89,8 @@ func HasPermission(db *sql.DB, userID uuid.UUID, permissionName string) (bool, e
 func HasRole(db *sql.DB, userID uuid.UUID, roleName string) (bool, error) {
 	query := `
 		SELECT COUNT(*) > 0
-		FROM "Roles" r
-		INNER JOIN "User_Roles" ur ON r.id = ur.role_id
+		FROM "roles" r
+		INNER JOIN "user_roles" ur ON r.id = ur.role_id
 		WHERE ur.user_id = $1 AND r.name = $2
 	`
 

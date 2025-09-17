@@ -46,7 +46,7 @@ export default async function DashboardPage() {
       {/* Page header is handled by Topbar; show a small subheader for context */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Overview</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back, {user.username}</p>
+        {/* <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back, {user.username}</p> */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -96,7 +96,7 @@ export default async function DashboardPage() {
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">Database Performance</h2>
+              <h2 className="text-lg text-white mb-1">Database Performance</h2>
               <p className="text-sm text-gray-400">Real-time metrics and insights</p>
             </div>
             <div className="p-3 bg-gray-700 rounded-lg">
@@ -120,7 +120,7 @@ export default async function DashboardPage() {
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">Recent Activity</h2>
+              <h2 className="text-lg text-white mb-1">Recent Activity</h2>
               <p className="text-sm text-gray-400">Latest system events and updates</p>
             </div>
             <div className="p-3 bg-gray-700 rounded-lg">
